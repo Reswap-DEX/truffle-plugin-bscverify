@@ -1,8 +1,8 @@
 {
-  "name": "truffle-plugin-verify",
+  "name": "truffle-plugin-bscverify",
   "version": "0.4.0",
-  "description": "Verify your deployed smart contracts on Etherscan from the Truffle CLI",
-  "repository": "https://github.com/rkalis/truffle-plugin-verify",
+  "description": "Verify your deployed smart contracts on BscScan from the Truffle CLI",
+  "repository": "https://github.com/Reswap-DEX/truffle-plugin-bscverify",
   "main": "verify.js",
   "files": [
     "constants.js",
@@ -18,7 +18,7 @@
     "truffle",
     "plugin",
     "ethereum",
-    "etherscan",
+    "bscscan",
     "verify"
   ],
   "author": "Rosco Kalis <roscokalis@gmail.com>",

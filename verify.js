@@ -5,7 +5,7 @@ const fs = require('fs')
 const querystring = require('querystring')
 const { merge } = require('sol-merger')
 const { plugins } = require('sol-merger/dist/lib/plugins')
-const { API_URLS, EXPLORER_URLS, RequestStatus, VerificationStatus, EtherscanLicense } = require('./constants')
+const { API_URLS, EXPLORER_URLS, RequestStatus, VerificationStatus, BscScanLicense } = require('./constants')
 const { enforce, enforceOrThrow } = require('./util')
 const { version } = require('./package.json')
 
@@ -17,7 +17,7 @@ module.exports = async (config) => {
   // Set debug logging
   if (config.debug) logger.level('debug')
   logger.debug('DEBUG logging is turned ON')
-  logger.debug(`Running truffle-plugin-verify v${version}`)
+  logger.debug(`Running truffle-plugin-bscverify v${version}`)
 
   // Verify each contract
   const contractNameAddressPairs = config._.slice(1)
@@ -43,7 +43,7 @@ module.exports = async (config) => {
       if (status === VerificationStatus.FAILED) {
         failedContracts.push(`${contractNameAddressPair}`)
       } else {
-        // Add link to verified contract on Etherscan
+        // Add link to verified contract on BscScan
         const explorerUrl = `${EXPLORER_URLS[options.networkId]}/${artifact.networks[`${options.networkId}`].address}#contracts`
         status += `: ${explorerUrl}`
       }
@@ -68,10 +68,10 @@ const parseConfig = (config) => {
   // Truffle handles network stuff, just need network_id
   const networkId = config.network_id
   const apiUrl = API_URLS[networkId]
-  enforce(apiUrl, `Etherscan has no support for network ${config.network} with id ${networkId}`, logger)
+  enforce(apiUrl, `BscScan has no support for network ${config.network} with id ${networkId}`, logger)
 
-  const apiKey = config.api_keys && config.api_keys.etherscan
-  enforce(apiKey, 'No Etherscan API key specified', logger)
+  const apiKey = config.api_keys && config.api_keys.bscscan
+  enforce(apiKey, 'No BscScan API key specified', logger)
 
   enforce(config._.length > 1, 'No contract name(s) specified', logger)
 
@@ -110,7 +110,7 @@ const verifyContract = async (artifact, options) => {
   )
 
   const res = await sendVerifyRequest(artifact, options)
-  enforceOrThrow(res.data, `Failed to connect to Etherscan API at url ${options.apiUrl}`)
+  enforceOrThrow(res.data, `Failed to connect to BscScan API at url ${options.apiUrl}`)
 
   if (res.data.result === VerificationStatus.ALREADY_VERIFIED) {
     return VerificationStatus.ALREADY_VERIFIED
@@ -124,7 +124,7 @@ const sendVerifyRequest = async (artifact, options) => {
   const encodedConstructorArgs = await fetchConstructorValues(artifact, options)
   const mergedSource = await fetchMergedSource(artifact, options)
 
-  const license = EtherscanLicense[options.license]
+  const license = BscScanLicense[options.license]
 
   const postQueries = {
     apikey: options.apiKey,
@@ -146,7 +146,7 @@ const sendVerifyRequest = async (artifact, options) => {
   const libraries = artifact.networks[`${options.networkId}`].links || {}
   Object.entries(libraries).forEach(([key, value], i) => {
     logger.debug(`Adding ${key} as a linked library at address ${value}`)
-    enforceOrThrow(i < 10, 'Can not link more than 10 libraries with Etherscan API')
+    enforceOrThrow(i < 10, 'Can not link more than 10 libraries with BscScan API')
     postQueries[`libraryname${i + 1}`] = key
     postQueries[`libraryaddress${i + 1}`] = value
   })
@@ -156,7 +156,7 @@ const sendVerifyRequest = async (artifact, options) => {
     logger.debug(JSON.stringify(postQueries, null, 2))
     return axios.post(options.apiUrl, querystring.stringify(postQueries))
   } catch (e) {
-    throw new Error(`Failed to connect to Etherscan API at url ${options.apiUrl}`)
+    throw new Error(`Failed to connect to BscScan API at url ${options.apiUrl}`)
   }
 }
 
@@ -179,7 +179,7 @@ const fetchConstructorValues = async (artifact, options) => {
     logger.debug(`Retrieving constructor parameters from ${url}`)
     res = await axios.get(url)
   } catch (e) {
-    throw new Error(`Failed to connect to Etherscan API at url ${options.apiUrl}`)
+    throw new Error(`Failed to connect to BscScan API at url ${options.apiUrl}`)
   }
 
   // The last part of the transaction data is the constructor arguments
@@ -214,7 +214,7 @@ const fetchMergedSource = async (artifact, options) => {
     mergedSource = `// SPDX-License-Identifier: ${options.license}\n\n${mergedSource}`
   }
 
-  // Etherscan disallows multiple SPDX-License-Identifier statements
+  // BscScan disallows multiple SPDX-License-Identifier statements
   enforceOrThrow(
     (mergedSource.match(/SPDX-License-Identifier:/g) || []).length <= 1,
     'Found duplicate SPDX-License-Identifiers in the Solidity code, please provide the correct license with --license <license identifier>'
@@ -243,7 +243,7 @@ const verificationStatus = async (guid, options) => {
         return verificationResult.data.result
       }
     } catch (e) {
-      throw new Error(`Failed to connect to Etherscan API at url ${options.apiUrl}`)
+      throw new Error(`Failed to connect to BscScan API at url ${options.apiUrl}`)
     }
   }
 }
